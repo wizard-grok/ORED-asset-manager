@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>ORED-asset-manager - Asset Manager for DERO</title>
+    <link rel="stylesheet" href="combined.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-fire"></i> ORED</h1>
+                <div class="wallet-section">
+                    <button id="connectWallet" class="btn btn-primary">
+                        <i class="fas fa-wallet"></i> Connect Wallet
+                    </button>
+                    <button id="disconnectWallet" class="btn btn-secondary" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i> Disconnect
+                    </button>
+                    <div id="walletInfo" class="wallet-info hidden">
+                        <div id="walletAddress" class="wallet-address"></div>
+                        <div id="walletBalance" class="wallet-balance">
+                            <span class="balance-label">Balance:</span>
+                            <span id="balanceAmount" class="balance-amount">0.00 DERO</span>
+                        </div>
+                    </div>
+                    <div id="connectionStatus" class="connection-status">🔴 Disconnected</div>
+                </div>
+            </div>
+        </header>
+
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="view">View Assets</button>
+            <button class="tab-btn" data-tab="send">Send NFT/NFA</button>
+            <button class="tab-btn" data-tab="search">Search</button>
+            <button class="tab-btn" data-tab="sell">Sell Orders</button>
+            <button class="tab-btn" data-tab="buy">Buy Orders</button>
+            <button class="tab-btn" data-tab="token-trading">Token Trading</button>
+            <button class="tab-btn" data-tab="wallet-calls">Wallet Calls</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- View Assets Tab -->
+            <div id="view-tab" class="tab-content active">
+                <div class="section-header">
+                    <h2>Your Assets</h2>
+                    <div class="filter-controls">
+                        <select id="collectionFilter" class="filter-select">
+                            <option value="">All Collections</option>
+                        </select>
+                        <select id="typeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="NFT">NFTs Only</option>
+                            <option value="NFA">NFAs Only</option>
+                            <option value="collection">Collections Only</option>
+                        </select>
+                        <select id="assetSortBy" class="filter-select">
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                            <option value="date-asc">Date (Oldest First)</option>
+                            <option value="date-desc">Date (Newest First)</option>
+                            <option value="collection-asc">Collection (A-Z)</option>
+                            <option value="collection-desc">Collection (Z-A)</option>
+                        </select>
+                        <button id="refreshAssets" class="btn btn-secondary" disabled title="Bulk refresh disabled until Gnomon integration">
+                            <i class="fas fa-sync-alt"></i> Refresh Saved
+                        </button>
+                        <button id="scanGnomonBtn" class="btn btn-primary" title="Scan simple-gnomon for all owned NFT/NFA assets">
+                            <i class="fas fa-search"></i> Scan simple-gnomon
+                        </button>
+                    </div>
+                    <p class="note muted" style="margin-top:8px;">Use "Scan simple-gnomon" to find all owned assets. Requires simple-gnomon running locally (http://127.0.0.1:8082).</p>
+                </div>
+                <div id="assetsGrid" class="assets-grid">
+                    <!-- Assets will be loaded here -->
+                </div>
+                <div id="loadingAssets" class="loading hidden">
+                    <i class="fas fa-spinner fa-spin"></i> Loading assets...
+                </div>
+            </div>
+
+            <!-- Send NFT/NFA Tab -->
+            <div id="send-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Send NFT/NFA</h2>
+                </div>
+                <form id="sendForm" class="send-form">
+                    <div class="form-group">
+                        <label for="fromAddress">From Address</label>
+                        <input type="text" id="fromAddress" readonly class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="toAddress">To Address</label>
+                        <input type="text" id="toAddress" placeholder="Enter recipient address" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="assetId">Asset ID</label>
+                        <input type="text" id="assetId" placeholder="Enter asset ID to send" class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <i class="fas fa-paper-plane"></i> Send Asset
+                    </button>
+                </form>
+                <div id="sendResult" class="result-message hidden"></div>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="search-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Search NFTs & Collections</h2>
+                </div>
+                
+                <div class="search-section">
+                    <div class="search-controls">
+                        <input type="text" id="searchQuery" placeholder="Search for collections, NFTs, or NFAs..." class="search-input">
+                        <select id="searchType" class="filter-select">
+                            <option value="all">All Types</option>
+                            <option value="nft">NFTs Only</option>
+                            <option value="nfa">NFAs Only</option>
+                            <option value="collection">Collections Only</option>
+                        </select>
+                        <button id="searchBtn" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="searchResults" class="search-results">
+                    <!-- Search results will be loaded here -->
+                </div>
+                
+                <div id="walletStats" class="wallet-stats">
+                    <!-- Wallet statistics will be loaded here -->
+                </div>
+                
+                <div id="loadingSearch" class="loading hidden">
+                    <i class="fas fa-spinner fa-spin"></i> Searching...
+                </div>
+            </div>
+
+
+            <!-- Sell Orders Tab -->
+            <div id="sell-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Sell Orders</h2>
+                    <button id="createSellOrder" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Sell Order
+                    </button>
+                </div>
+                
+                <div class="orders-section">
+                    <div class="orders-filters">
+                        <select id="sellStatusFilter" class="filter-select">
+                            <option value="all">All Orders</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <select id="sellCollectionFilter" class="filter-select">
+                            <option value="">All Collections</option>
+                        </select>
+                        <select id="sellTypeFilter" class="filter-select">
+                            <option value="all">All Types</option>
+                            <option value="nft">NFT</option>
+                            <option value="nfa">NFA</option>
+                        </select>
+                        <select id="sellSortBy" class="filter-select">
+                            <option value="date-desc">Date (Newest First)</option>
+                            <option value="date-asc">Date (Oldest First)</option>
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                            <option value="price-desc">Price (High to Low)</option>
+                            <option value="price-asc">Price (Low to High)</option>
+                        </select>
+                        <button id="refreshSellOrders" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div id="sellOrdersList" class="orders-list">
+                    <!-- Sell orders will be loaded here -->
+                </div>
+                
+                <div id="loadingSellOrders" class="loading hidden">
+                    <i class="fas fa-spinner fa-spin"></i> Loading sell orders...
+                </div>
+            </div>
+
+            <!-- Buy Orders Tab -->
+            <div id="buy-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Buy Orders</h2>
+                    <button id="createBuyOrder" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Buy Order
+                    </button>
+                </div>
+                
+                <div class="orders-section">
+                    <div class="orders-filters">
+                        <select id="buyStatusFilter" class="filter-select">
+                            <option value="all">All Orders</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <select id="buyCollectionFilter" class="filter-select">
+                            <option value="">All Collections</option>
+                        </select>
+                        <select id="buyTypeFilter" class="filter-select">
+                            <option value="all">All Types</option>
+                            <option value="nft">NFT</option>
+                            <option value="nfa">NFA</option>
+                        </select>
+                        <select id="buySortBy" class="filter-select">
+                            <option value="date-desc">Date (Newest First)</option>
+                            <option value="date-asc">Date (Oldest First)</option>
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                            <option value="price-desc">Price (High to Low)</option>
+                            <option value="price-asc">Price (Low to High)</option>
+                        </select>
+                        <button id="refreshBuyOrders" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div id="buyOrdersList" class="orders-list">
+                    <!-- Buy orders will be loaded here -->
+                </div>
+                
+                <div id="loadingBuyOrders" class="loading hidden">
+                    <i class="fas fa-spinner fa-spin"></i> Loading buy orders...
+                </div>
+            </div>
+
+            <!-- Token Trading Tab -->
+            <div id="token-trading-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Token Trading</h2>
+                    <div class="token-search-section" style="margin-top: 15px;">
+                        <input type="text" id="tokenSearchInput" class="search-input" placeholder="Search by Token SCID (64 hex characters)" style="width: 400px; padding: 8px;">
+                        <button id="searchTokenBtn" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Search Token
+                        </button>
+                    </div>
+                </div>
+
+                <div id="tokenSearchResults" class="token-results-container hidden">
+                    <div id="tokenResultsList" class="token-results-list">
+                        <!-- Token search results will be rendered here -->
+                    </div>
+                </div>
+
+                <div class="trading-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <!-- Buy Orders -->
+                    <div class="orderbook-section">
+                        <h3>Buy Orders</h3>
+                        <div class="orderbook-controls" style="margin-bottom: 10px;">
+                            <button id="createTokenBuyOrder" class="btn btn-success" style="width: 100%;">
+                                <i class="fas fa-plus"></i> Create Buy Order
+                            </button>
+                        </div>
+                        <div id="tokenBuyOrdersList" class="orders-list" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Buy orders will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Sell Orders -->
+                    <div class="orderbook-section">
+                        <h3>Sell Orders</h3>
+                        <div class="orderbook-controls" style="margin-bottom: 10px;">
+                            <button id="createTokenSellOrder" class="btn btn-danger" style="width: 100%;">
+                                <i class="fas fa-plus"></i> Create Sell Order
+                            </button>
+                        </div>
+                        <div id="tokenSellOrdersList" class="orders-list" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Sell orders will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loadingTokenTrading" class="loading hidden">
+                    <i class="fas fa-spinner fa-spin"></i> Loading token data...
+                </div>
+            </div>
+
+            <!-- Wallet Calls Tab -->
+            <div id="wallet-calls-tab" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-flask"></i> Wallet XSWD Test Tool</h2>
+                    <p class="note muted">Test wallet XSWD calls directly. Requires wallet connection.</p>
+                </div>
+                
+                <div class="engram-test-container" style="max-width: 1200px; margin: 0 auto;">
+                    <!-- Connection Status -->
+                    <div class="engram-status-box" style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div id="engramStatus" class="engram-status disconnected" style="padding: 10px; margin: 10px 0; border-radius: 4px; background: #5a2a2a; border: 1px solid #9a4a4a;">
+                            ⚠️ Connect wallet to use wallet calls
+                        </div>
+                    </div>
+
+                    <!-- Test Methods -->
+                    <div class="test-methods-section" style="display: grid; gap: 20px;">
+                        <!-- Get Balance -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-coins"></i> 1. Get Balance</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Address (optional, leave empty for connected wallet):</label>
+                                <input type="text" id="balanceAddress" class="form-input" placeholder="deto1qyre7td6x9r88y4cavdgpv6k7lvx6j39lfsx420hpvh3ydpcrtxrxqg8v8e3z" style="width: 100%; margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">SCID (optional, for asset balance):</label>
+                                <input type="text" id="balanceScid" class="form-input" placeholder="64 hex characters" style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testGetBalance()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-search"></i> Get Balance
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Get SC -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-file-contract"></i> 2. Get SC (Smart Contract State)</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">SCID:</label>
+                                <input type="text" id="scidGetSC" class="form-input" placeholder="64 hex characters" required style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testGetSC()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-search"></i> Get SC State
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Gnomon.GetOwner -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-user-check"></i> 3. Gnomon.GetOwner</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">SCID:</label>
+                                <input type="text" id="scidGnomon" class="form-input" placeholder="64 hex characters" required style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testGnomonGetOwner()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-search"></i> Get Owner
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Query Displayed NFTs -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-eye"></i> 4. Query Displayed NFTs (G45)</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">NFT Contract SCID:</label>
+                                <input type="text" id="displayedNftScid" class="form-input" placeholder="64 hex characters" style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testQueryDisplayedNFT()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-search"></i> Query All Displayed Balances
+                                </button>
+                                <p class="note muted" style="margin-top: 10px; font-size: 12px;">
+                                    Scans ALL owner_&lt;address&gt; keys in contract state and shows all displayed balances with their wallet addresses. No wallet connection required.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Debug Missing NFT -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-search"></i> 4b. Debug Missing NFT</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">NFT Contract SCID:</label>
+                                <input type="text" id="debugNftScid" class="form-input" placeholder="64 hex characters" style="width: 100%; margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Transaction ID (optional):</label>
+                                <input type="text" id="debugNftTxid" class="form-input" placeholder="64 hex characters" style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testDebugMissingNFT()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-bug"></i> Debug NFT Location
+                                </button>
+                                <p class="note muted" style="margin-top: 10px; font-size: 12px;">
+                                    Shows ALL owner_ keys, contract balances, and transaction details to find where the NFT went.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Query NFA Status -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-cube"></i> 5. Query NFA Status (ART-NFA-MS1)</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">NFA Contract SCID:</label>
+                                <input type="text" id="nfaStatusScid" class="form-input" placeholder="64 hex characters" style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testQueryNFAStatus()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-search"></i> Query NFA Status
+                                </button>
+                                <p class="note muted" style="margin-top: 10px; font-size: 12px;">
+                                    Shows NFA contract state: owner, active listing, scBalance, listType, prices, and timestamps.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Query Marketplace Orders -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-shopping-cart"></i> 6. Query Marketplace Orders</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Marketplace SCID:</label>
+                                <input type="text" id="marketplaceScid" class="form-input" placeholder="64 hex characters" style="width: 100%; margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Asset SCID (optional, filter by asset):</label>
+                                <input type="text" id="orderAssetScid" class="form-input" placeholder="Leave empty for all orders" style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testQueryMarketplaceOrders()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-search"></i> Query Orders
+                                </button>
+                                <p class="note muted" style="margin-top: 10px; font-size: 12px;">
+                                    Scans marketplace contract state for listing_* and buy_* keys. Shows seller, buyer, price, and status.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Get Transaction History -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-history"></i> 7. Get Transaction History</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Contract SCID (required):</label>
+                                <input type="text" id="txHistoryScid" class="form-input" placeholder="64 hex characters" style="width: 100%; margin-bottom: 10px;">
+                                <button onclick="testGetTransactionHistory()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-search"></i> Get Public Transactions
+                                </button>
+                                <p class="note muted" style="margin-top: 10px; font-size: 12px;">
+                                    Uses DERO.GetSC to extract public transaction data from contract state. Shows listings, orders, displayed NFTs, and wallet addresses. Note: This shows on-chain state data, not full transaction history with txids.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Custom Call -->
+                        <div class="test-method-box" style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h3><i class="fas fa-code"></i> 9. Custom JSON-RPC Call</h3>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Method:</label>
+                                <input type="text" id="customMethod" class="form-input" placeholder="DERO.GetSC" value="DERO.GetSC" style="width: 100%; margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Params (JSON):</label>
+                                <textarea id="customParams" class="form-input" rows="5" placeholder='{"scid": "d9e1bf5573efd779fd3c3c35b5f4fe9be211ace7bf1d5a3d0b8e715c3240c0b4"}' style="width: 100%; font-family: monospace; margin-bottom: 10px;">{}</textarea>
+                                <button onclick="testCustomCall()" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-paper-plane"></i> Send Custom Call
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Response -->
+                    <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                        <h3 style="margin-bottom: 15px;"><i class="fas fa-file-alt"></i> Response:</h3>
+                        <pre id="engramResponse" style="background: #1a1a1a; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 400px; overflow-y: auto; color: #fff; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">No calls made yet...</pre>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Asset Modal -->
+        <div id="assetModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="modalContent">
+                    <!-- Asset details will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug panel removed for production -->
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 ORED-asset-manager. Asset manager built for DERO.</p>
+        </footer>
+    </div>
+
+    <!-- Scripts loaded at the end for proper DOM initialization -->
+    <!-- Load order is important: combined.js (WebSocket/Wallet) -> appcore.js (Core class) -> appfeat1.js/appfeat2.js (Feature extensions) -->
+    <script src="combined.js?v=29"></script>
+    <script src="appcore.js?v=29"></script>
+    <script src="appfeat1.js?v=5"></script>
+    <script src="appfeat2.js?v=24"></script>
+    <script src="appfeat3.js?v=3"></script>
+    <script src="appfeat4.js?v=12"></script>
+    <script src="appfeat5.js?v=2"></script>
+    <script src="appfeat6.js?v=1"></script>
+    <script src="appfeat7.js?v=1"></script>
+    <script src="appfeat8.js?v=1"></script>
+    
+    <!-- Wallet Calls JavaScript (loaded separately to reduce main file size) -->
+    <script src="index.js?v=1"></script>
+</body>
+</html>
+
